@@ -3,10 +3,11 @@ import numpy as np
 widthImg=540
 heightImg =640
 
+#using webcam
 cap = cv2.VideoCapture(0)
 cap.set(10,150)
 
-
+#making image into grey,blur, detect edge and dialation and erode lines
 def preProcessing(img):
     imgGray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
     imgBlur = cv2.GaussianBlur(imgGray,(5,5),1)
@@ -15,6 +16,7 @@ def preProcessing(img):
     imgDial = cv2.dilate(imgCanny,kernel,iterations=2)
     imgThres = cv2.erode(imgDial,kernel,iterations=1)
     return imgThres
+
 
 def getContours(img):
     biggest = np.array([])
@@ -43,19 +45,21 @@ def reorder (myPoints):
     myPointsNew[2] = myPoints[np.argmax(diff)]
     return myPointsNew
 
+#warp perspective
 def getWarp(img,biggest):
     biggest = reorder(biggest)
     pts1 = np.float32(biggest)
     pts2 = np.float32([[0, 0], [widthImg, 0], [0, heightImg], [widthImg, heightImg]])
     matrix = cv2.getPerspectiveTransform(pts1, pts2)
     imgOutput = cv2.warpPerspective(img, matrix, (widthImg, heightImg))
-
+    
+    #cropping
     imgCropped = imgOutput[20:imgOutput.shape[0]-20,20:imgOutput.shape[1]-20]
     imgCropped = cv2.resize(imgCropped,(widthImg,heightImg))
 
     return imgCropped
 
-
+#stacking image function
 def stackImages(scale,imgArray):
     rows = len(imgArray)
     cols = len(imgArray[0])
@@ -96,13 +100,9 @@ while True:
     biggest = getContours(imgThres)
     if biggest.size !=0:
         imgWarped=getWarp(img,biggest)
-        # imageArray = ([img,imgThres],
-        #           [imgContour,imgWarped])
         imageArray = ([imgContour, imgWarped])
 
     else:
-        # imageArray = ([img, imgThres],
-        #               [img, img])
         imageArray = ([imgContour, img])
 
     stackedImages = stackImages(0.6,imageArray)
